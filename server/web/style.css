@@ -1,0 +1,225 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #0a0a0a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100dvh;
+    padding: 16px;
+    font-family: 'VT323', ui-monospace, monospace;
+}
+
+/* ── CRT custom properties ── */
+.crt {
+    --crt-bg:       #0b0c0b;
+    --crt-fg:       #c8ffb0;
+    --crt-dim:      #3a563a;
+    --crt-glow:     rgba(200, 255, 176, 0.35);
+    --crt-scanline: rgba(255, 255, 255, 0.03);
+    --crt-vignette: rgba(0, 0, 0, 0.55);
+    --crt-border:   #1c1c1c;
+}
+
+/* ── Themes ── */
+.crt.theme-amber {
+    --crt-fg:    #ffc66d;
+    --crt-dim:   #6b553f;
+    --crt-glow:  rgba(255, 198, 109, 0.38);
+}
+
+.crt.theme-green {
+    --crt-fg:    #9cff9c;
+    --crt-dim:   #3f6b3f;
+    --crt-glow:  rgba(156, 255, 156, 0.38);
+}
+
+.crt.theme-cyan {
+    --crt-fg:    #8feaff;
+    --crt-dim:   #3f5f6b;
+    --crt-glow:  rgba(143, 234, 255, 0.38);
+}
+
+/* ── Monitor shell ── */
+.monitor {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 24px 20px 24px;
+    background: radial-gradient(120% 90% at 50% 50%, rgba(255,255,255,0.025) 0%, transparent 50%), var(--crt-bg);
+    color: var(--crt-fg);
+    border: 1px solid var(--crt-border);
+    border-radius: 14px;
+    width: min(860px, 100%);
+    font-family: 'VT323', ui-monospace, monospace;
+    text-shadow: 0 0 6px var(--crt-glow), 0 0 2px var(--crt-glow);
+    box-shadow:
+        0 0 0 2px #111,
+        0 0 0 4px #222,
+        0 8px 40px rgba(0,0,0,0.7),
+        inset 0 0 60px rgba(0,0,0,0.4);
+    overflow: hidden;
+    z-index: 0;
+}
+
+/* Glass gloss */
+.monitor::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        radial-gradient(120% 90% at 50% 5%,  rgba(255,255,255,0.06), transparent 55%),
+        radial-gradient(120% 90% at 50% 100%, rgba(255,255,255,0.02), transparent 55%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Scanlines */
+.monitor::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 1px,
+        var(--crt-scanline) 1px,
+        var(--crt-scanline) 2px
+    );
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 18px;
+    color: var(--crt-dim);
+    position: relative;
+    z-index: 3;
+}
+
+.toolbar-title {
+    font-size: 22px;
+    color: var(--crt-fg);
+    letter-spacing: 2px;
+}
+
+.theme-select {
+    background: transparent;
+    border: 1px solid var(--crt-dim);
+    color: var(--crt-fg);
+    font-family: inherit;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    outline: none;
+}
+
+.theme-select:focus {
+    border-color: var(--crt-fg);
+}
+
+.theme-select option {
+    background: #111;
+    color: #eee;
+}
+
+/* ── Scoreboard ticker ── */
+.ticker-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+    position: relative;
+    z-index: 3;
+    border: 1px solid var(--crt-dim);
+    border-radius: 4px;
+    padding: 4px 10px;
+    background: rgba(0,0,0,0.3);
+}
+
+.ticker-label {
+    font-size: 15px;
+    color: var(--crt-dim);
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 1px;
+}
+
+.ticker-track {
+    overflow: hidden;
+    flex: 1;
+    mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+}
+
+.ticker-inner {
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 17px;
+    color: var(--crt-fg);
+    text-shadow: 0 0 6px var(--crt-glow);
+    animation: ticker-scroll 30s linear infinite;
+    padding-left: 100%;
+}
+
+@keyframes ticker-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-100%); }
+}
+
+/* ── Canvas wrapper ── */
+.canvas-wrap {
+    position: relative;
+    z-index: 3;
+    line-height: 0;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--crt-dim);
+    border-radius: 4px;
+    image-rendering: pixelated;
+    touch-action: none;
+}
+
+/* Vignette over canvas */
+.canvas-wrap::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    background: radial-gradient(ellipse at center, transparent 60%, var(--crt-vignette) 100%);
+    pointer-events: none;
+}
+
+/* ── Loading overlay ── */
+#loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: var(--crt-fg);
+    background: var(--crt-bg);
+    border-radius: 4px;
+    z-index: 10;
+    letter-spacing: 3px;
+}

@@ -1,0 +1,34 @@
+game:
+  duration: 60            # czas gry w sekundach
+  ball_speedup_rate: 1.05 # mnożnik prędkości kulki po każdym punkcie
+  player_speed: 280       # prędkość sterowania kropką przez gracza (px/s)
+  hit_freeze_duration: 0.8        # freeze po złapaniu przez paletkę (s)
+  countdown_digit_duration: 0.8   # czas wyświetlania cyfry 3/2/1 (s)
+  go_display_duration: 0.6        # czas wyświetlania "GO!" (s)
+
+levels:
+  easy:
+    ball_speed: 240         # startowa prędkość kulki (px/s)
+    paddle_speed: 180       # prędkość paletki AI (px/s)
+    points: 1               # punkty za ominięcie paletki
+    jitter_range: 30        # losowy offset celu paletki (px)
+    jitter_interval: 0.5    # co ile sekund losowany nowy jitter (s)
+    dead_zone: 15           # martwa strefa ruchu paletki (px)
+
+  medium:
+    ball_speed: 300
+    paddle_speed: 300
+    points: 2
+    error_chance: 0.30      # prawdopodobieństwo celowego błędu (0-1)
+    error_range: 70         # zakres celowego błędu (px)
+    error_interval: 1.8     # co ile sekund losowana decyzja o błędzie (s)
+    dead_zone: 12
+
+  hard:
+    ball_speed: 360
+    paddle_speed: 420
+    points: 3
+    error_chance: 0.08
+    error_range: 35
+    error_interval: 3.0
+    dead_zone: 3

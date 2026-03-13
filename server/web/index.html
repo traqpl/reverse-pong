@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REVERSE PONG</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="crt theme-amber monitor" id="monitor">
+
+        <div class="ticker-wrap">
+            <span class="ticker-label">HALL OF FAME ▶</span>
+            <div class="ticker-track">
+                <span class="ticker-inner" id="tickerInner">— LOADING —</span>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <span class="toolbar-title">◈ REVERSE PONG</span>
+            <div style="display:flex;align-items:center;gap:10px">
+                <label for="themeSelect" style="font-size:16px">THEME:</label>
+                <select id="themeSelect" class="theme-select">
+                    <option value="theme-amber" selected>AMBER</option>
+                    <option value="theme-green">GREEN</option>
+                    <option value="theme-cyan">CYAN</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="canvas-wrap">
+            <canvas id="gameCanvas" width="800" height="500"></canvas>
+            <div id="loading">LOADING...</div>
+        </div>
+
+    </div>
+
+    <script src="audio.js"></script>
+    <script src="touch.js"></script>
+    <script src="wasm_exec.js"></script>
+    <script>
+        // Theme switcher
+        const monitor = document.getElementById('monitor');
+        const themeSelect = document.getElementById('themeSelect');
+        const themes = ['theme-amber', 'theme-green', 'theme-cyan'];
+
+        themeSelect.addEventListener('change', () => {
+            themes.forEach(t => monitor.classList.remove(t));
+            monitor.classList.add(themeSelect.value);
+            // expose to WASM
+            window.crtTheme = themeSelect.value;
+        });
+        window.crtTheme = 'theme-amber';
+
+        // Scoreboard ticker
+        const tickerInner = document.getElementById('tickerInner');
+
+        async function refreshTicker() {
+            try {
+                const res = await fetch('/api/scores?n=20');
+                const scores = await res.json();
+                if (!scores.length) { tickerInner.textContent = '— NO SCORES YET —'; return; }
+                const medals = ['🥇','🥈','🥉'];
+                tickerInner.textContent = scores
+                    .map((s, i) => `${medals[i] ?? (i+1)+'.'} ${s.nick}  ${s.score}pt  [${s.level.toUpperCase()}]`)
+                    .join('   ·   ');
+                // restart animation so it starts from the right edge
+                tickerInner.style.animation = 'none';
+                tickerInner.offsetHeight; // reflow
+                tickerInner.style.animation = '';
+            } catch { tickerInner.textContent = '— ERROR —'; }
+        }
+
+        refreshTicker();
+        setInterval(refreshTicker, 30_000);
+
+        // Load WASM
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch('game.wasm'), go.importObject)
+            .then(result => {
+                document.getElementById('loading').style.display = 'none';
+                go.run(result.instance);
+            })
+            .catch(err => {
+                document.getElementById('loading').textContent = 'ERROR: ' + err.message;
+            });
+    </script>
+</body>
+</html>
