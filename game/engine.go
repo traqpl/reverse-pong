@@ -41,10 +41,18 @@ type Engine struct {
 	// score flash
 	scoreFlashTimer float64
 
-	// scoreboard
+	// 2P scores
+	score2      int
+	streak2     int
+	bestStreak2 int
+
+	// scoreboard / nick entry
 	scoreboardState
-	pendingNick [3]rune
-	nickLen     int
+	pendingNick  [3]rune
+	nickLen      int
+	pendingNick2 [3]rune
+	nickLen2     int
+	nickPhase    int // 0=P1 nick, 1=P2 nick (2P mode only)
 
 	// input
 	keys map[string]bool
@@ -106,6 +114,12 @@ func (e *Engine) startGame() {
 	e.score = 0
 	e.streak = 0
 	e.bestStreak = 0
+	e.score2 = 0
+	e.streak2 = 0
+	e.bestStreak2 = 0
+	e.nickPhase = 0
+	e.nickLen = 0
+	e.nickLen2 = 0
 	e.timeLeft = cfg.Game.Duration
 	e.resetBall()
 	e.resetPaddle()

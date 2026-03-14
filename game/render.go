@@ -247,36 +247,49 @@ func (e *Engine) renderPlaying() {
 
 func (e *Engine) renderHUD() {
 	color := e.crtColor()
-
-	// Mode indicator — top centre
-	e.glow(10)
-	e.ctx.Set("fillStyle", color)
-	if e.twoPlayer {
-		e.text("2P", e.w/2, 20, 20, "center")
-	} else {
-		e.text(strings.ToUpper(levelName(e.level)), e.w/2, 20, 20, "center")
-	}
-
-	// Score — top left
 	e.glow(14)
 	e.ctx.Set("fillStyle", color)
-	e.text(fmt.Sprintf("SCORE: %d", e.score), 8, 20, 24, "left")
 
-	// Timer — top right
-	secs := int(math.Ceil(e.timeLeft))
-	timeStr := fmt.Sprintf("TIME: %d:%02d", secs/60, secs%60)
-	if e.timeLeft < 10 {
-		e.ctx.Set("fillStyle", "#ff4444")
-		e.ctx.Set("shadowColor", "#ff0000")
-	}
-	e.text(timeStr, e.w-8, 20, 24, "right")
+	if e.twoPlayer {
+		// 2P layout: P1 top-left | TIME centre | P2 top-right
+		e.text(fmt.Sprintf("P1 %d", e.score), 8, 20, 28, "left")
+		e.text(fmt.Sprintf("%d P2", e.score2), e.w-8, 20, 28, "right")
 
-	// Streak — bottom centre (only when >= 3)
-	if e.streak >= 3 {
+		secs := int(math.Ceil(e.timeLeft))
+		if e.timeLeft < 10 {
+			e.ctx.Set("fillStyle", "#ff4444")
+			e.ctx.Set("shadowColor", "#ff0000")
+		}
+		e.text(fmt.Sprintf("%d:%02d", secs/60, secs%60), e.w/2, 20, 24, "center")
 		e.ctx.Set("fillStyle", color)
-		e.ctx.Set("shadowColor", color)
-		mult := streakMultiplier(e.streak)
-		e.text(fmt.Sprintf("STREAK %d  ×%.1f", e.streak, mult), e.w/2, e.h-20, 22, "center")
+		e.ctx.Set("shadowColor", e.glowColor())
+
+		// P1 streak bottom-left, P2 streak bottom-right
+		if e.streak >= 3 {
+			e.text(fmt.Sprintf("P1 ×%.1f", streakMultiplier(e.streak)), 8, e.h-20, 20, "left")
+		}
+		if e.streak2 >= 3 {
+			e.text(fmt.Sprintf("P2 ×%.1f", streakMultiplier(e.streak2)), e.w-8, e.h-20, 20, "right")
+		}
+	} else {
+		// 1P layout: SCORE left | LEVEL centre | TIME right
+		e.text(strings.ToUpper(levelName(e.level)), e.w/2, 20, 20, "center")
+		e.text(fmt.Sprintf("SCORE: %d", e.score), 8, 20, 24, "left")
+
+		secs := int(math.Ceil(e.timeLeft))
+		timeStr := fmt.Sprintf("TIME: %d:%02d", secs/60, secs%60)
+		if e.timeLeft < 10 {
+			e.ctx.Set("fillStyle", "#ff4444")
+			e.ctx.Set("shadowColor", "#ff0000")
+		}
+		e.text(timeStr, e.w-8, 20, 24, "right")
+
+		if e.streak >= 3 {
+			e.ctx.Set("fillStyle", color)
+			e.ctx.Set("shadowColor", color)
+			mult := streakMultiplier(e.streak)
+			e.text(fmt.Sprintf("STREAK %d  ×%.1f", e.streak, mult), e.w/2, e.h-20, 22, "center")
+		}
 	}
 
 	e.noGlow()
@@ -315,6 +328,15 @@ func (e *Engine) renderScoreFlash() {
 
 func (e *Engine) renderGameOver() {
 	e.clear()
+
+	if e.twoPlayer {
+		e.renderGameOver2P()
+	} else {
+		e.renderGameOver1P()
+	}
+}
+
+func (e *Engine) renderGameOver1P() {
 	color := e.crtColor()
 
 	e.glow(50)
@@ -326,7 +348,6 @@ func (e *Engine) renderGameOver() {
 	e.text(fmt.Sprintf("BEST STREAK: %d", e.bestStreak), e.w/2, e.h*0.46, 28, "center")
 	e.noGlow()
 
-	// Nick input
 	e.ctx.Set("fillStyle", "rgba(255,255,255,0.15)")
 	e.ctx.Call("fillRect", e.w/2-90, e.h*0.57, 180, 44)
 	e.ctx.Set("strokeStyle", color)
@@ -337,7 +358,6 @@ func (e *Engine) renderGameOver() {
 	for i := 0; i < e.nickLen; i++ {
 		nick += string(e.pendingNick[i])
 	}
-	// Blinking cursor
 	cursor := ""
 	if e.nickLen < 3 && int(nowMS()/500)%2 == 0 {
 		cursor = "_"
@@ -350,7 +370,88 @@ func (e *Engine) renderGameOver() {
 	e.text("ENTER YOUR 3-LETTER NICK", e.w/2, e.h*0.57-14, 18, "center")
 
 	e.ctx.Set("fillStyle", "rgba(255,255,255,0.35)")
-	e.text("[ENTER] SAVE   [ESC] SKIP   [R] PLAY AGAIN", e.w/2, e.h-24, 18, "center")
+	e.text("[ENTER] SAVE   [ESC] SKIP", e.w/2, e.h-24, 18, "center")
+}
+
+func (e *Engine) renderGameOver2P() {
+	color := e.crtColor()
+
+	e.glow(50)
+	e.text("GAME OVER", e.w/2, e.h*0.12, 72, "center")
+	e.noGlow()
+
+	// Scores side by side
+	e.glow(18)
+	e.text(fmt.Sprintf("P1 (BALL): %d", e.score), e.w/4, e.h*0.26, 30, "center")
+	e.text(fmt.Sprintf("P2 (PADDLE): %d", e.score2), 3*e.w/4, e.h*0.26, 30, "center")
+	e.noGlow()
+
+	// Winner announcement
+	winnerLabel := "DRAW!"
+	if e.score > e.score2 {
+		winnerLabel = "P1 WINS!"
+	} else if e.score2 > e.score {
+		winnerLabel = "P2 WINS!"
+	}
+	e.glow(30)
+	e.text(winnerLabel, e.w/2, e.h*0.38, 40, "center")
+	e.noGlow()
+
+	// Nick entry — phase 0 = P1, phase 1 = P2
+	phase0Active := e.nickPhase == 0
+	phase1Active := e.nickPhase == 1
+
+	// P1 nick box
+	e.renderNickBox(e.w/4, e.h*0.52, "P1 NICK", e.pendingNick, e.nickLen, phase0Active)
+	// P2 nick box
+	e.renderNickBox(3*e.w/4, e.h*0.52, "P2 NICK", e.pendingNick2, e.nickLen2, phase1Active)
+
+	_ = color
+	e.ctx.Set("fillStyle", "rgba(255,255,255,0.35)")
+	if phase0Active {
+		e.text("P1: TYPE YOUR NICK   [ENTER] CONFIRM   [ESC] SKIP ALL", e.w/2, e.h-24, 18, "center")
+	} else {
+		e.text("P2: TYPE YOUR NICK   [ENTER] SAVE   [ESC] SKIP P2", e.w/2, e.h-24, 18, "center")
+	}
+}
+
+func (e *Engine) renderNickBox(cx, y float64, label string, nick [3]rune, length int, active bool) {
+	color := e.crtColor()
+	boxW, boxH := 160.0, 44.0
+
+	if active {
+		e.ctx.Set("fillStyle", "rgba(255,255,255,0.15)")
+	} else {
+		e.ctx.Set("fillStyle", "rgba(255,255,255,0.05)")
+	}
+	e.ctx.Call("fillRect", cx-boxW/2, y, boxW, boxH)
+
+	if active {
+		e.ctx.Set("strokeStyle", color)
+	} else {
+		e.ctx.Set("strokeStyle", "rgba(255,255,255,0.25)")
+	}
+	e.ctx.Set("lineWidth", 1.5)
+	e.ctx.Call("strokeRect", cx-boxW/2, y, boxW, boxH)
+
+	nickStr := ""
+	for i := 0; i < length; i++ {
+		nickStr += string(nick[i])
+	}
+	cursor := ""
+	if active && length < 3 && int(nowMS()/500)%2 == 0 {
+		cursor = "_"
+	}
+	if active {
+		e.glow(10)
+	} else {
+		e.noGlow()
+	}
+	e.text(nickStr+cursor, cx, y+22, 36, "center")
+	e.noGlow()
+
+	e.ctx.Set("fillStyle", "rgba(255,255,255,0.45)")
+	e.text(label, cx, y-14, 18, "center")
 }
 
 // ── Scoreboard ────────────────────────────────────────────────────────────────
@@ -364,7 +465,7 @@ func (e *Engine) renderScoreboard() {
 	e.noGlow()
 
 	// Tab bar
-	tabs := []string{"ALL", "EASY", "MEDIUM", "HARD"}
+	tabs := []string{"ALL", "EASY", "MEDIUM", "HARD", "2P"}
 	tabW := 100.0
 	startX := e.w/2 - float64(len(tabs))*tabW/2
 	for i, tab := range tabs {

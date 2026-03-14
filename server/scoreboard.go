@@ -117,3 +117,41 @@ func (s *ScoreStore) Add(entry ScoreEntry, ip string) (string, int) {
 	}
 	return "", 0
 }
+
+// Add2P inserts both players' scores from a 2P match in one rate-limited operation.
+func (s *ScoreStore) Add2P(p1, p2 ScoreEntry, ip string) (string, int) {
+	s.mu.Lock()
+	last, ok := s.lastIP[ip]
+	if ok && time.Since(last) < time.Minute {
+		s.mu.Unlock()
+		return "too many requests", http.StatusTooManyRequests
+	}
+	s.lastIP[ip] = time.Now()
+	s.mu.Unlock()
+
+	ts := time.Now().UTC().Format(time.RFC3339)
+	p1.Timestamp = ts
+	p2.Timestamp = ts
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return "db error", http.StatusInternalServerError
+	}
+	ins := `INSERT INTO scores (nick, score, level, timestamp) VALUES (?, ?, ?, ?)`
+	if _, err = tx.Exec(ins, p1.Nick, p1.Score, p1.Level, p1.Timestamp); err != nil {
+		_ = tx.Rollback()
+		log.Printf("scores 2p insert p1: %v", err)
+		return "db error", http.StatusInternalServerError
+	}
+	if p2.Nick != "---" {
+		if _, err = tx.Exec(ins, p2.Nick, p2.Score, p2.Level, p2.Timestamp); err != nil {
+			_ = tx.Rollback()
+			log.Printf("scores 2p insert p2: %v", err)
+			return "db error", http.StatusInternalServerError
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return "db error", http.StatusInternalServerError
+	}
+	return "", 0
+}

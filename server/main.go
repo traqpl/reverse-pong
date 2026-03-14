@@ -87,7 +87,7 @@ func main() {
 
 func handleGetScores(w http.ResponseWriter, r *http.Request) {
 	level := strings.ToLower(r.URL.Query().Get("level"))
-	if level != "" && level != "easy" && level != "medium" && level != "hard" {
+	if level != "" && level != "easy" && level != "medium" && level != "hard" && level != "2p" {
 		http.Error(w, `{"error":"invalid level"}`, http.StatusBadRequest)
 		return
 	}
@@ -109,21 +109,60 @@ var nickRe = regexp.MustCompile(`^[A-Za-z]{3}$`)
 
 func handlePostScore(w http.ResponseWriter, r *http.Request) {
 	var req struct {
+		// 1P fields
 		Nick  string `json:"nick"`
 		Score int    `json:"score"`
 		Level string `json:"level"`
+		// 2P batch fields
+		P1Nick  string `json:"p1_nick"`
+		P1Score int    `json:"p1_score"`
+		P2Nick  string `json:"p2_nick"`
+		P2Score int    `json:"p2_score"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 		return
 	}
 
-	// Validate
+	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		parts := strings.Split(fwd, ",")
+		ip = strings.TrimSpace(parts[0])
+	}
+
+	// 2P batch submission
+	if req.P1Nick != "" {
+		p1Nick := strings.ToUpper(req.P1Nick)
+		p2Nick := strings.ToUpper(req.P2Nick)
+		if !nickRe.MatchString(p1Nick) || (!nickRe.MatchString(p2Nick) && p2Nick != "---") {
+			http.Error(w, `{"error":"nick must be 3 letters A-Z"}`, http.StatusBadRequest)
+			return
+		}
+		if req.P1Score < 0 || req.P1Score > 9999 || req.P2Score < 0 || req.P2Score > 9999 {
+			http.Error(w, `{"error":"score out of range"}`, http.StatusBadRequest)
+			return
+		}
+		msg, status := store.Add2P(
+			ScoreEntry{Nick: p1Nick, Score: req.P1Score, Level: "2p"},
+			ScoreEntry{Nick: p2Nick, Score: req.P2Score, Level: "2p"},
+			ip,
+		)
+		if msg != "" {
+			w.WriteHeader(status)
+			_, _ = w.Write([]byte(`{"error":"` + msg + `"}`))
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+		return
+	}
+
+	// 1P submission
 	if !nickRe.MatchString(req.Nick) {
 		http.Error(w, `{"error":"nick must be 3 letters A-Z"}`, http.StatusBadRequest)
 		return
 	}
-	if req.Score < 0 || req.Score > 999 {
+	if req.Score < 0 || req.Score > 9999 {
 		http.Error(w, `{"error":"score out of range"}`, http.StatusBadRequest)
 		return
 	}
@@ -133,20 +172,12 @@ func handlePostScore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Uppercase nick
 	nick := strings.ToUpper(req.Nick)
 	for _, r := range nick {
 		if !unicode.IsLetter(r) {
 			http.Error(w, `{"error":"nick must be letters only"}`, http.StatusBadRequest)
 			return
 		}
-	}
-
-	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-	// Trust X-Forwarded-For from local reverse proxy
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		parts := strings.Split(fwd, ",")
-		ip = strings.TrimSpace(parts[0])
 	}
 
 	entry := ScoreEntry{Nick: nick, Score: req.Score, Level: req.Level}

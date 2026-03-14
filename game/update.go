@@ -62,12 +62,17 @@ func (e *Engine) updatePlaying(dt float64) {
 		e.ball.VX = -e.ball.VX // bounce back right
 
 		if e.paddle.Hits(e.ball) {
-			// Paddle caught it — no score, streak resets
-			e.streak = 0
-			callAudio("bounce")
+			e.streak = 0 // P1 streak resets
+			if e.twoPlayer {
+				e.onScorePaddle() // P2 scores on catch
+			} else {
+				callAudio("bounce")
+			}
 		} else {
-			// Ball passed alongside the paddle — score!
-			e.onScore()
+			if e.twoPlayer {
+				e.streak2 = 0 // P2 streak resets
+			}
+			e.onScore() // P1 scores when ball passes paddle
 		}
 		return
 	}
@@ -97,6 +102,29 @@ func (e *Engine) onScore() {
 	callAudio("score")
 
 	// Speed up ball slightly on each score
+	speed := e.ball.VX * cfg.Game.BallSpeedupRate
+	e.ball.VX = speed
+	if e.ball.VY < 0 {
+		e.ball.VY = -speed * 0.5
+	} else {
+		e.ball.VY = speed * 0.5
+	}
+}
+
+// onScorePaddle awards a point to the paddle player (P2) in 2P mode.
+func (e *Engine) onScorePaddle() {
+	e.streak2++
+	if e.streak2 > e.bestStreak2 {
+		e.bestStreak2 = e.streak2
+	}
+
+	pts := levelPoints(e.level)
+	multiplier := streakMultiplier(e.streak2)
+	e.score2 += int(float64(pts) * multiplier)
+
+	e.scoreFlashTimer = 0.25
+	callAudio("score")
+
 	speed := e.ball.VX * cfg.Game.BallSpeedupRate
 	e.ball.VX = speed
 	if e.ball.VY < 0 {

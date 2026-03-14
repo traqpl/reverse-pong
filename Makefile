@@ -48,6 +48,8 @@ deploy: wasm certs
 	scp $(BINARY) $(REMOTE_HOST):$(REMOTE_BIN)
 	scp scripts/start-server.sh $(REMOTE_HOST):$(REMOTE_DIR)/start-server.sh
 	scp config.yaml $(REMOTE_HOST):$(REMOTE_DIR)/config.yaml
+	ssh $(REMOTE_HOST) "mkdir -p $(REMOTE_DIR)/music"
+	scp -r music/* $(REMOTE_HOST):$(REMOTE_DIR)/music/
 	ssh $(REMOTE_HOST) " \
 		chmod +x $(REMOTE_DIR)/start-server.sh; \
 		pkill -x $(BINARY) || true; \
