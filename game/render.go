@@ -206,28 +206,34 @@ func (e *Engine) renderMenuStats() {
 	if s == nil {
 		return
 	}
-	e.ctx.Set("fillStyle", "rgba(255,255,255,0.28)")
+
+	const x = 8.0
+	y1 := e.h * 0.855
+	y2 := e.h * 0.895
+
+	// "STATS" label on the left, spanning both lines vertically
+	e.text("STATS", x, (y1+y2)/2, 17, "left")
+
+	const indent = 58.0
 
 	// 1P line
-	easy1p := s.Matches1P["easy"]
-	med1p := s.Matches1P["medium"]
-	hard1p := s.Matches1P["hard"]
-	line1p := fmt.Sprintf("1P  EASY:%d  MEDIUM:%d  HARD:%d", easy1p, med1p, hard1p)
-	e.text(line1p, e.w/2, e.h*0.855, 17, "center")
+	line1p := fmt.Sprintf("1P  EASY:%d  MEDIUM:%d  HARD:%d",
+		s.Matches1P["easy"], s.Matches1P["medium"], s.Matches1P["hard"])
+	e.text(line1p, x+indent, y1, 17, "left")
 
-	// 2P line — only show levels that have any matches
+	// 2P line
 	line2p := "2P"
 	for _, lv := range []string{"easy", "medium", "hard"} {
 		st, ok := s.Matches2P[lv]
 		if !ok || st.Total == 0 {
 			continue
 		}
-		line2p += fmt.Sprintf("  %s P1:%d/P2:%d/REMIS:%d", strings.ToUpper(lv[:3]), st.P1, st.P2, st.Draw)
+		line2p += fmt.Sprintf("  %s P1:%d/P2:%d/DRAW:%d", strings.ToUpper(lv[:3]), st.P1, st.P2, st.Draw)
 	}
 	if line2p == "2P" {
-		line2p = "2P  brak meczy"
+		line2p = "2P  no matches yet"
 	}
-	e.text(line2p, e.w/2, e.h*0.895, 17, "center")
+	e.text(line2p, x+indent, y2, 17, "left")
 }
 
 // ── Countdown ────────────────────────────────────────────────────────────────
