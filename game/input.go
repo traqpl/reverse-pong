@@ -81,6 +81,7 @@ func (e *Engine) handleKeyDown(key string, event js.Value) {
 		case "Escape", "p", "P":
 			e.state = StatePlaying
 		case "q", "Q":
+			e.playMusic("menuMusic")
 			e.state = StateMenu
 		}
 
@@ -90,6 +91,7 @@ func (e *Engine) handleKeyDown(key string, event js.Value) {
 	case StateScoreboard:
 		switch key {
 		case "Escape", "r", "R":
+			e.playMusic("menuMusic")
 			e.state = StateMenu
 		case "ArrowLeft":
 			e.prevScoreTab()
@@ -144,6 +146,15 @@ func (e *Engine) applyMovementInput(dt float64) {
 
 	if dy == 0 {
 		return
+	}
+
+	// After hitting a wall, block player from pushing ball back toward it
+	// until the ball has traveled at least 1/4 screen height away.
+	if e.wallCooldownSide == -1 && dy < 0 {
+		dy = 0
+	}
+	if e.wallCooldownSide == 1 && dy > 0 {
+		dy = 0
 	}
 
 	e.ball.Y += dy

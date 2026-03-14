@@ -40,6 +40,17 @@ func (e *Engine) updatePlaying(dt float64) {
 	// Ball physics
 	e.ball.Update(dt, e.w, e.h)
 
+	// Wall cooldown: after hitting top/bottom, block player from pushing ball back
+	// until it travels at least 1/4 screen height away from that wall.
+	if e.ball.LastWallHit != 0 {
+		e.wallCooldownSide = e.ball.LastWallHit
+	}
+	if e.wallCooldownSide == -1 && e.ball.Y > e.h/4 {
+		e.wallCooldownSide = 0
+	} else if e.wallCooldownSide == 1 && e.ball.Y < 3*e.h/4 {
+		e.wallCooldownSide = 0
+	}
+
 	// AI paddle (skipped in 2P mode — player 2 moves it via W/S in applyMovementInput)
 	if !e.twoPlayer {
 		e.paddle.Update(e.ball, dt, e.h)

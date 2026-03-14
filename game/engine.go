@@ -50,6 +50,10 @@ type Engine struct {
 	keys map[string]bool
 
 	musicEnabled bool
+
+	// wallCooldownSide blocks player input toward a wall after a bounce:
+	// -1 = top wall hit (block upward), +1 = bottom wall hit (block downward), 0 = none.
+	wallCooldownSide int
 }
 
 func NewEngine(canvas js.Value) *Engine {
