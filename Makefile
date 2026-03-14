@@ -27,7 +27,7 @@ wasm-exec:
 certs:
 	go run ./cmd/certgen $(CERTS_DIR)
 
-server:
+server: wasm certs
 	go run ./server/
 
 dev: wasm certs
