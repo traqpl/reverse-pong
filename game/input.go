@@ -20,6 +20,19 @@ func (e *Engine) registerInput() {
 		delete(e.keys, key)
 		return nil
 	}))
+
+	// Clear held keys when the window loses focus to prevent ghost inputs.
+	clearKeys := js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		e.keys = make(map[string]bool)
+		return nil
+	})
+	js.Global().Call("addEventListener", "blur", clearKeys)
+	js.Global().Get("document").Call("addEventListener", "visibilitychange", js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		if js.Global().Get("document").Get("hidden").Bool() {
+			e.keys = make(map[string]bool)
+		}
+		return nil
+	}))
 }
 
 // handleKeyDown processes one-shot key actions (state transitions, nick entry).
@@ -46,6 +59,13 @@ func (e *Engine) handleKeyDown(key string, event js.Value) {
 			event.Call("preventDefault")
 		case "Enter", " ":
 			e.startGame()
+		case "m", "M":
+			e.musicEnabled = !e.musicEnabled
+			if e.musicEnabled {
+				callAudio("menuMusic")
+			} else {
+				callAudio("stopMusic")
+			}
 		case "s", "S":
 			e.state = StateScoreboard
 			go e.fetchScores("")

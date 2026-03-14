@@ -185,9 +185,9 @@ func (p *Paddle) Hits(ball Ball) bool {
 }
 
 // Draw renders the paddle with a glow.
-func (p *Paddle) Draw(ctx js.Value, color string) {
-	ctx.Set("shadowBlur", 12)
-	ctx.Set("shadowColor", color)
+func (p *Paddle) Draw(ctx js.Value, color, glowColor string) {
+	ctx.Set("shadowBlur", 22)
+	ctx.Set("shadowColor", glowColor)
 	ctx.Set("fillStyle", color)
 	ctx.Call("fillRect", p.X, p.Y, p.W, p.H)
 	ctx.Set("shadowBlur", 0)

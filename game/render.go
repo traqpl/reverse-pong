@@ -28,21 +28,37 @@ func (e *Engine) clear() {
 	e.ctx.Call("fillRect", 0, 0, e.w, e.h)
 }
 
+// crtColor returns the Display P3 fill colour for the active theme.
+// Values extend slightly beyond sRGB for extra vibrancy on P3 displays.
 func (e *Engine) crtColor() string {
 	theme := js.Global().Get("crtTheme").String()
 	switch theme {
 	case "theme-green":
-		return "#9cff9c"
+		return "color(display-p3 0.50 1.00 0.50)"
 	case "theme-cyan":
-		return "#8feaff"
+		return "color(display-p3 0.48 0.92 1.00)"
 	default: // theme-amber
-		return "#ffc66d"
+		return "color(display-p3 1.00 0.78 0.38)"
+	}
+}
+
+// glowColor returns a highly saturated Display P3 colour used for shadowColor.
+// More saturated than crtColor so the bloom looks intense on HDR/P3 displays.
+func (e *Engine) glowColor() string {
+	theme := js.Global().Get("crtTheme").String()
+	switch theme {
+	case "theme-green":
+		return "color(display-p3 0.10 1.00 0.10)"
+	case "theme-cyan":
+		return "color(display-p3 0.00 0.82 1.00)"
+	default: // theme-amber
+		return "color(display-p3 1.00 0.72 0.00)"
 	}
 }
 
 func (e *Engine) glow(blur float64) {
 	e.ctx.Set("shadowBlur", blur)
-	e.ctx.Set("shadowColor", e.crtColor())
+	e.ctx.Set("shadowColor", e.glowColor())
 }
 
 func (e *Engine) noGlow() {
@@ -69,7 +85,7 @@ func (e *Engine) renderMenu() {
 	t := nowMS() / 1000.0
 
 	// Pulsing title glow
-	pulse := 12 + 18*math.Abs(math.Sin(t*1.8))
+	pulse := 20 + 32*math.Abs(math.Sin(t*1.8))
 	e.ctx.Set("shadowBlur", pulse)
 	e.ctx.Set("shadowColor", color)
 	e.text("REVERSE PONG", e.w/2, e.h*0.22, 64, "center")
@@ -95,7 +111,7 @@ func (e *Engine) renderMenu() {
 		active := e.level == lv.l
 
 		if active {
-			e.glow(14)
+			e.glow(24)
 			e.ctx.Set("fillStyle", color)
 		} else {
 			e.noGlow()
@@ -135,7 +151,7 @@ func (e *Engine) renderMenu() {
 		active := (i == 1) == e.twoPlayer
 
 		if active {
-			e.glow(12)
+			e.glow(20)
 			e.ctx.Set("fillStyle", color)
 		} else {
 			e.noGlow()
@@ -164,21 +180,28 @@ func (e *Engine) renderMenu() {
 
 	// Blink "PRESS ENTER"
 	if int(nowMS()/600)%2 == 0 {
-		e.glow(8)
+		e.glow(16)
 		e.text("PRESS ENTER TO START", e.w/2, e.h*0.78, 28, "center")
 		e.noGlow()
 	}
 
-	// Scoreboard hint
+	// Music toggle indicator
+	musicLabel := "[M] MUSIC: ON"
+	if !e.musicEnabled {
+		musicLabel = "[M] MUSIC: OFF"
+	}
 	e.ctx.Set("fillStyle", "rgba(255,255,255,0.35)")
-	e.text("[S] SCOREBOARD   [1/2/3] DIFFICULTY   [←/→] DIFFICULTY   [TAB] MODE", e.w/2, e.h-24, 18, "center")
+	e.text("[S] SCOREBOARD   [1/2/3] DIFFICULTY   [←/→] DIFFICULTY   [TAB] MODE   "+musicLabel, e.w/2, e.h-24, 18, "center")
+
+	// Build timestamp — bottom right corner
+	e.ctx.Set("fillStyle", "rgba(255,255,255,0.20)")
+	e.text(BuildTime, e.w-8, e.h-8, 14, "right")
 }
 
 // ── Countdown ────────────────────────────────────────────────────────────────
 
 func (e *Engine) renderCountdown() {
 	e.clear()
-	color := e.crtColor()
 	var label string
 	if e.countdownDigit > 0 {
 		label = fmt.Sprintf("%d", e.countdownDigit)
@@ -186,8 +209,8 @@ func (e *Engine) renderCountdown() {
 		label = "GO!"
 	}
 
-	e.ctx.Set("shadowBlur", 40)
-	e.ctx.Set("shadowColor", color)
+	e.ctx.Set("shadowBlur", 65)
+	e.ctx.Set("shadowColor", e.glowColor())
 	e.text(label, e.w/2, e.h/2, 96, "center")
 	e.noGlow()
 }
@@ -201,7 +224,7 @@ func (e *Engine) renderPlaying() {
 	// Right wall
 	e.ctx.Set("strokeStyle", color)
 	e.ctx.Set("lineWidth", 3)
-	e.glow(6)
+	e.glow(14)
 	e.ctx.Call("beginPath")
 	e.ctx.Call("moveTo", e.w-2, 0)
 	e.ctx.Call("lineTo", e.w-2, e.h)
@@ -210,20 +233,23 @@ func (e *Engine) renderPlaying() {
 	e.noGlow()
 
 	// Paddle
-	e.paddle.Draw(e.ctx, color)
+	e.paddle.Draw(e.ctx, color, e.glowColor())
 
 	// Ball
-	e.ball.Draw(e.ctx, color)
+	e.ball.Draw(e.ctx, color, e.glowColor())
 
 	// HUD
 	e.renderHUD()
+
+	// Green flash on score
+	e.renderScoreFlash()
 }
 
 func (e *Engine) renderHUD() {
 	color := e.crtColor()
 
 	// Mode indicator — top centre
-	e.glow(6)
+	e.glow(10)
 	e.ctx.Set("fillStyle", color)
 	if e.twoPlayer {
 		e.text("2P", e.w/2, 20, 20, "center")
@@ -232,7 +258,7 @@ func (e *Engine) renderHUD() {
 	}
 
 	// Score — top left
-	e.glow(8)
+	e.glow(14)
 	e.ctx.Set("fillStyle", color)
 	e.text(fmt.Sprintf("SCORE: %d", e.score), 8, 20, 24, "left")
 
@@ -264,7 +290,7 @@ func (e *Engine) renderPauseOverlay() {
 
 	color := e.crtColor()
 	t := nowMS() / 1000.0
-	pulse := 10 + 14*math.Abs(math.Sin(t*1.5))
+	pulse := 16 + 24*math.Abs(math.Sin(t*1.5))
 	e.ctx.Set("shadowBlur", pulse)
 	e.ctx.Set("shadowColor", color)
 	e.text("PAUSED", e.w/2, e.h/2, 72, "center")
@@ -274,17 +300,28 @@ func (e *Engine) renderPauseOverlay() {
 	e.noGlow()
 }
 
+// ── Score flash ───────────────────────────────────────────────────────────────
+
+func (e *Engine) renderScoreFlash() {
+	if e.scoreFlashTimer <= 0 {
+		return
+	}
+	alpha := e.scoreFlashTimer / 0.25 * 0.45
+	e.ctx.Set("fillStyle", fmt.Sprintf("rgba(0,255,80,%.3f)", alpha))
+	e.ctx.Call("fillRect", 0, 0, e.w, e.h)
+}
+
 // ── Game over ─────────────────────────────────────────────────────────────────
 
 func (e *Engine) renderGameOver() {
 	e.clear()
 	color := e.crtColor()
 
-	e.glow(30)
+	e.glow(50)
 	e.text("GAME OVER", e.w/2, e.h*0.2, 72, "center")
 	e.noGlow()
 
-	e.glow(10)
+	e.glow(18)
 	e.text(fmt.Sprintf("YOUR SCORE: %d", e.score), e.w/2, e.h*0.36, 36, "center")
 	e.text(fmt.Sprintf("BEST STREAK: %d", e.bestStreak), e.w/2, e.h*0.46, 28, "center")
 	e.noGlow()
@@ -322,7 +359,7 @@ func (e *Engine) renderScoreboard() {
 	e.clear()
 	color := e.crtColor()
 
-	e.glow(20)
+	e.glow(35)
 	e.text("SCOREBOARD", e.w/2, 36, 48, "center")
 	e.noGlow()
 

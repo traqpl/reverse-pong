@@ -115,6 +115,7 @@ func (e *Engine) postScore(nick string, score int, level AILevel) {
 func (e *Engine) handleNickKey(key string) {
 	switch key {
 	case "Escape":
+		e.playMusic("menuMusic")
 		e.state = StateScoreboard
 		go e.fetchScores("")
 	case "Enter":
@@ -123,6 +124,7 @@ func (e *Engine) handleNickKey(key string) {
 			e.lastSubmittedNick = nick
 			e.lastSubmittedScore = e.score
 			go e.postScore(nick, e.score, e.level)
+			e.playMusic("menuMusic")
 			e.state = StateScoreboard
 			e.scoreTab = 0
 			go e.fetchScores("")

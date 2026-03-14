@@ -30,6 +30,10 @@ func (e *Engine) updateCountdown(dt float64) {
 
 // updatePlaying runs the main game loop tick.
 func (e *Engine) updatePlaying(dt float64) {
+	if e.scoreFlashTimer > 0 {
+		e.scoreFlashTimer -= dt
+	}
+
 	// Player movement
 	e.applyMovementInput(dt)
 
@@ -41,11 +45,19 @@ func (e *Engine) updatePlaying(dt float64) {
 		e.paddle.Update(e.ball, dt, e.h)
 	}
 
-	// Ball reaches left wall — paddle always bounces it back
+	// Ball reaches left side
 	if e.ball.X-e.ball.R <= 0 {
 		e.ball.X = e.ball.R
-		e.ball.VX = -e.ball.VX // flip to positive (going right)
-		e.onBounce()
+		e.ball.VX = -e.ball.VX // bounce back right
+
+		if e.paddle.Hits(e.ball) {
+			// Paddle caught it — no score, streak resets
+			e.streak = 0
+			callAudio("bounce")
+		} else {
+			// Ball passed alongside the paddle — score!
+			e.onScore()
+		}
 		return
 	}
 
@@ -55,12 +67,12 @@ func (e *Engine) updatePlaying(dt float64) {
 		e.timeLeft = 0
 		e.state = StateGameOver
 		e.nickLen = 0
+		e.playMusic("stopMusic")
 		callAudio("gameOver")
 	}
 }
 
-// onBounce scores points and speeds the ball up on every left-wall bounce.
-func (e *Engine) onBounce() {
+func (e *Engine) onScore() {
 	e.streak++
 	if e.streak > e.bestStreak {
 		e.bestStreak = e.streak
@@ -70,9 +82,10 @@ func (e *Engine) onBounce() {
 	multiplier := streakMultiplier(e.streak)
 	e.score += int(float64(pts) * multiplier)
 
-	callAudio("bounce")
+	e.scoreFlashTimer = 0.25
+	callAudio("score")
 
-	// Speed up ball slightly; VX is already positive after the flip above
+	// Speed up ball slightly on each score
 	speed := e.ball.VX * cfg.Game.BallSpeedupRate
 	e.ball.VX = speed
 	if e.ball.VY < 0 {

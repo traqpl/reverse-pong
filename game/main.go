@@ -8,6 +8,9 @@ import (
 
 var engine *Engine
 
+// BuildTime is injected at build time via -ldflags "-X main.BuildTime=..."
+var BuildTime = "dev"
+
 func main() {
 	fetchConfig()
 

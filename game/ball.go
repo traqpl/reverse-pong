@@ -37,10 +37,10 @@ func (b *Ball) Update(dt, canvasW, canvasH float64) {
 }
 
 // Draw renders the ball as a glowing circle.
-func (b *Ball) Draw(ctx js.Value, color string) {
+func (b *Ball) Draw(ctx js.Value, color, glowColor string) {
 	// Glow shadow
-	ctx.Set("shadowBlur", 18)
-	ctx.Set("shadowColor", color)
+	ctx.Set("shadowBlur", 30)
+	ctx.Set("shadowColor", glowColor)
 
 	// Radial gradient: bright centre → dim edge
 	grad := ctx.Call("createRadialGradient",

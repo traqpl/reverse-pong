@@ -38,6 +38,9 @@ type Engine struct {
 	countdownTimer float64 // time within current countdown digit
 	countdownDigit int     // 3, 2, 1, 0 = GO!
 
+	// score flash
+	scoreFlashTimer float64
+
 	// scoreboard
 	scoreboardState
 	pendingNick [3]rune
@@ -45,21 +48,28 @@ type Engine struct {
 
 	// input
 	keys map[string]bool
+
+	musicEnabled bool
 }
 
 func NewEngine(canvas js.Value) *Engine {
-	ctx := canvas.Call("getContext", "2d")
+	// Request Display P3 color space for wider gamut on capable displays (Chrome/Mac).
+	ctx := canvas.Call("getContext", "2d", map[string]any{"colorSpace": "display-p3"})
+	if ctx.IsNull() || ctx.IsUndefined() {
+		ctx = canvas.Call("getContext", "2d")
+	}
 	w := canvas.Get("width").Float()
 	h := canvas.Get("height").Float()
 
 	e := &Engine{
-		canvas: canvas,
-		ctx:    ctx,
-		w:      w,
-		h:      h,
-		state:  StateMenu,
-		keys:   make(map[string]bool),
-		level:  Medium,
+		canvas:       canvas,
+		ctx:          ctx,
+		w:            w,
+		h:            h,
+		state:        StateMenu,
+		keys:         make(map[string]bool),
+		level:        Medium,
+		musicEnabled: true,
 	}
 	e.resetBall()
 	e.resetPaddle()
@@ -95,7 +105,14 @@ func (e *Engine) startGame() {
 	e.timeLeft = cfg.Game.Duration
 	e.resetBall()
 	e.resetPaddle()
+	e.playMusic("gameMusic")
 	e.startCountdown()
+}
+
+func (e *Engine) playMusic(name string) {
+	if e.musicEnabled {
+		callAudio(name)
+	}
 }
 
 // Update advances game logic by dt seconds.
