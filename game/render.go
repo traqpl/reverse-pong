@@ -320,7 +320,13 @@ func (e *Engine) renderScoreFlash() {
 		return
 	}
 	alpha := e.scoreFlashTimer / 0.25 * 0.45
-	e.ctx.Set("fillStyle", fmt.Sprintf("rgba(0,255,80,%.3f)", alpha))
+	var color string
+	if e.scoreFlashRed {
+		color = fmt.Sprintf("rgba(255,40,40,%.3f)", alpha)
+	} else {
+		color = fmt.Sprintf("rgba(0,255,80,%.3f)", alpha)
+	}
+	e.ctx.Set("fillStyle", color)
 	e.ctx.Call("fillRect", 0, 0, e.w, e.h)
 }
 

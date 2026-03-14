@@ -99,6 +99,7 @@ func (e *Engine) onScore() {
 	e.score += int(float64(pts) * multiplier)
 
 	e.scoreFlashTimer = 0.25
+	e.scoreFlashRed = false
 	callAudio("score")
 
 	// Speed up ball slightly on each score
@@ -123,6 +124,7 @@ func (e *Engine) onScorePaddle() {
 	e.score2 += int(float64(pts) * multiplier)
 
 	e.scoreFlashTimer = 0.25
+	e.scoreFlashRed = true
 	callAudio("score")
 
 	speed := e.ball.VX * cfg.Game.BallSpeedupRate

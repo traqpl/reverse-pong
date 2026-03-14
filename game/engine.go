@@ -40,6 +40,7 @@ type Engine struct {
 
 	// score flash
 	scoreFlashTimer float64
+	scoreFlashRed   bool // true = P2 scored (paddle catch), red flash
 
 	// 2P scores
 	score2      int
