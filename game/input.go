@@ -93,6 +93,7 @@ func (e *Engine) handleKeyDown(key string, event js.Value) {
 		case "q":
 			e.playMusic("menuMusic")
 			e.state = StateMenu
+			go e.fetchStats()
 		}
 
 	case StateGameOver:
@@ -103,6 +104,7 @@ func (e *Engine) handleKeyDown(key string, event js.Value) {
 		case "Escape", "r":
 			e.playMusic("menuMusic")
 			e.state = StateMenu
+			go e.fetchStats()
 		case "ArrowLeft":
 			e.prevScoreTab()
 		case "ArrowRight":

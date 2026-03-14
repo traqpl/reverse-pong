@@ -17,6 +17,7 @@ func main() {
 	canvas := js.Global().Get("document").Call("getElementById", "gameCanvas")
 	engine = NewEngine(canvas)
 	engine.registerInput()
+	go engine.fetchStats()
 
 	var lastTime float64
 	var loop js.Func

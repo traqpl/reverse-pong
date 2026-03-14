@@ -33,8 +33,11 @@ type Paddle struct {
 	lc           LevelSettings // level config snapshot
 }
 
-func newPaddle(level AILevel, canvasH float64, lc LevelSettings) Paddle {
+func newPaddle(level AILevel, canvasH float64, lc LevelSettings, twoPlayer bool) Paddle {
 	h := 80.0
+	if twoPlayer {
+		h = 130.0
+	}
 	return Paddle{
 		X:     0,
 		Y:     (canvasH - h) / 2,

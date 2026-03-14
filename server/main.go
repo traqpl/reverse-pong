@@ -43,6 +43,12 @@ func main() {
 		_ = json.NewEncoder(w).Encode(gameConfig)
 	})
 
+	// Stats API
+	mux.HandleFunc("/api/stats", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(store.Stats())
+	})
+
 	// Scoreboard API
 	mux.HandleFunc("/api/scores", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -118,6 +124,8 @@ func handlePostScore(w http.ResponseWriter, r *http.Request) {
 		P1Score int    `json:"p1_score"`
 		P2Nick  string `json:"p2_nick"`
 		P2Score int    `json:"p2_score"`
+		// 2P difficulty level
+		P2Level string `json:"p2_level"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
@@ -142,10 +150,20 @@ func handlePostScore(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"error":"score out of range"}`, http.StatusBadRequest)
 			return
 		}
+		matchLevel := strings.ToLower(req.P2Level)
+		if matchLevel != "easy" && matchLevel != "medium" && matchLevel != "hard" {
+			matchLevel = "easy" // fallback for old clients
+		}
+		winner := "draw"
+		if req.P1Score > req.P2Score {
+			winner = "p1"
+		} else if req.P2Score > req.P1Score {
+			winner = "p2"
+		}
 		msg, status := store.Add2P(
 			ScoreEntry{Nick: p1Nick, Score: req.P1Score, Level: "2p"},
 			ScoreEntry{Nick: p2Nick, Score: req.P2Score, Level: "2p"},
-			ip,
+			matchLevel, winner, ip,
 		)
 		if msg != "" {
 			w.WriteHeader(status)

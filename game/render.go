@@ -185,6 +185,9 @@ func (e *Engine) renderMenu() {
 		e.noGlow()
 	}
 
+	// Match statistics
+	e.renderMenuStats()
+
 	// Music toggle indicator
 	musicLabel := "[M] MUSIC: ON"
 	if !e.musicEnabled {
@@ -196,6 +199,35 @@ func (e *Engine) renderMenu() {
 	// Build timestamp — bottom right corner
 	e.ctx.Set("fillStyle", "rgba(255,255,255,0.20)")
 	e.text(BuildTime, e.w-8, e.h-8, 14, "right")
+}
+
+func (e *Engine) renderMenuStats() {
+	s := e.menuStats
+	if s == nil {
+		return
+	}
+	e.ctx.Set("fillStyle", "rgba(255,255,255,0.28)")
+
+	// 1P line
+	easy1p := s.Matches1P["easy"]
+	med1p := s.Matches1P["medium"]
+	hard1p := s.Matches1P["hard"]
+	line1p := fmt.Sprintf("1P  EASY:%d  MEDIUM:%d  HARD:%d", easy1p, med1p, hard1p)
+	e.text(line1p, e.w/2, e.h*0.855, 17, "center")
+
+	// 2P line — only show levels that have any matches
+	line2p := "2P"
+	for _, lv := range []string{"easy", "medium", "hard"} {
+		st, ok := s.Matches2P[lv]
+		if !ok || st.Total == 0 {
+			continue
+		}
+		line2p += fmt.Sprintf("  %s P1:%d/P2:%d/REMIS:%d", strings.ToUpper(lv[:3]), st.P1, st.P2, st.Draw)
+	}
+	if line2p == "2P" {
+		line2p = "2P  brak meczy"
+	}
+	e.text(line2p, e.w/2, e.h*0.895, 17, "center")
 }
 
 // ── Countdown ────────────────────────────────────────────────────────────────

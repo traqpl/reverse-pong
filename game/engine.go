@@ -60,6 +60,8 @@ type Engine struct {
 
 	musicEnabled bool
 
+	menuStats *MenuStats
+
 	// wallCooldownSide blocks player input toward a wall after a bounce:
 	// -1 = top wall hit (block upward), +1 = bottom wall hit (block downward), 0 = none.
 	wallCooldownSide int
@@ -101,7 +103,7 @@ func (e *Engine) resetBall() {
 }
 
 func (e *Engine) resetPaddle() {
-	e.paddle = newPaddle(e.level, e.h, levelCfg(e.level))
+	e.paddle = newPaddle(e.level, e.h, levelCfg(e.level), e.twoPlayer)
 }
 
 func (e *Engine) startCountdown() {

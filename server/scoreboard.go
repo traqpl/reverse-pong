@@ -61,6 +61,17 @@ func NewScoreStore(dbPath string) *ScoreStore {
 		log.Fatalf("create scores table: %v", err)
 	}
 
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS matches (
+		id        INTEGER PRIMARY KEY AUTOINCREMENT,
+		mode      TEXT NOT NULL,
+		level     TEXT NOT NULL,
+		winner    TEXT NOT NULL,
+		timestamp TEXT NOT NULL
+	)`)
+	if err != nil {
+		log.Fatalf("create matches table: %v", err)
+	}
+
 	log.Printf("scores db: %s", dbPath)
 	return &ScoreStore{db: db, lastIP: make(map[string]time.Time)}
 }
@@ -95,6 +106,74 @@ func (s *ScoreStore) Top(level string, n int) []ScoreEntry {
 	return entries
 }
 
+// TwoPlayerStats holds win counts for a single level in 2P mode.
+type TwoPlayerStats struct {
+	Total int `json:"total"`
+	P1    int `json:"p1"`
+	P2    int `json:"p2"`
+	Draw  int `json:"draw"`
+}
+
+// StatsResponse is the payload returned by GET /api/stats.
+type StatsResponse struct {
+	Matches1P map[string]int            `json:"matches_1p"`
+	Matches2P map[string]TwoPlayerStats `json:"matches_2p"`
+}
+
+// Stats returns aggregated match counts.
+func (s *ScoreStore) Stats() StatsResponse {
+	resp := StatsResponse{
+		Matches1P: make(map[string]int),
+		Matches2P: make(map[string]TwoPlayerStats),
+	}
+
+	rows, err := s.db.Query(`SELECT level, COUNT(*) FROM matches WHERE mode='1p' GROUP BY level`)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var level string
+			var count int
+			if rows.Scan(&level, &count) == nil {
+				resp.Matches1P[level] = count
+			}
+		}
+	}
+
+	rows2, err := s.db.Query(`SELECT level, winner, COUNT(*) FROM matches WHERE mode='2p' GROUP BY level, winner`)
+	if err == nil {
+		defer rows2.Close()
+		for rows2.Next() {
+			var level, winner string
+			var count int
+			if rows2.Scan(&level, &winner, &count) == nil {
+				s2 := resp.Matches2P[level]
+				s2.Total += count
+				switch winner {
+				case "p1":
+					s2.P1 = count
+				case "p2":
+					s2.P2 = count
+				case "draw":
+					s2.Draw = count
+				}
+				resp.Matches2P[level] = s2
+			}
+		}
+	}
+
+	return resp
+}
+
+func (s *ScoreStore) recordMatch(mode, level, winner string) {
+	ts := time.Now().UTC().Format(time.RFC3339)
+	if _, err := s.db.Exec(
+		`INSERT INTO matches (mode, level, winner, timestamp) VALUES (?, ?, ?, ?)`,
+		mode, level, winner, ts,
+	); err != nil {
+		log.Printf("matches insert: %v", err)
+	}
+}
+
 // Add inserts a score entry. Returns a non-empty message and HTTP status on error.
 func (s *ScoreStore) Add(entry ScoreEntry, ip string) (string, int) {
 	s.mu.Lock()
@@ -115,11 +194,13 @@ func (s *ScoreStore) Add(entry ScoreEntry, ip string) (string, int) {
 		log.Printf("scores insert: %v", err)
 		return "db error", http.StatusInternalServerError
 	}
+	s.recordMatch("1p", entry.Level, "")
 	return "", 0
 }
 
 // Add2P inserts both players' scores from a 2P match in one rate-limited operation.
-func (s *ScoreStore) Add2P(p1, p2 ScoreEntry, ip string) (string, int) {
+// level is the difficulty ("easy", "medium", "hard"); winner is "p1", "p2", or "draw".
+func (s *ScoreStore) Add2P(p1, p2 ScoreEntry, level, winner, ip string) (string, int) {
 	s.mu.Lock()
 	last, ok := s.lastIP[ip]
 	if ok && time.Since(last) < time.Minute {
@@ -153,5 +234,6 @@ func (s *ScoreStore) Add2P(p1, p2 ScoreEntry, ip string) (string, int) {
 	if err = tx.Commit(); err != nil {
 		return "db error", http.StatusInternalServerError
 	}
+	s.recordMatch("2p", level, winner)
 	return "", 0
 }

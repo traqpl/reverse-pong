@@ -111,8 +111,8 @@ func (e *Engine) postScore(nick string, score int, level AILevel) {
 }
 
 func (e *Engine) postScore2P(p1Nick string, p1Score int, p2Nick string, p2Score int) {
-	body := fmt.Sprintf(`{"p1_nick":%q,"p1_score":%d,"p2_nick":%q,"p2_score":%d}`,
-		p1Nick, p1Score, p2Nick, p2Score)
+	body := fmt.Sprintf(`{"p1_nick":%q,"p1_score":%d,"p2_nick":%q,"p2_score":%d,"p2_level":%q}`,
+		p1Nick, p1Score, p2Nick, p2Score, levelName(e.level))
 	js.Global().Call("fetch", "/api/scores", map[string]any{
 		"method":  "POST",
 		"headers": map[string]any{"Content-Type": "application/json"},
@@ -207,6 +207,47 @@ func (e *Engine) handleNickKey2P(key string) {
 			e.appendNickChar(key, &e.pendingNick2, &e.nickLen2)
 		}
 	}
+}
+
+// MenuStats holds the aggregated match statistics shown on the main menu.
+type MenuStats struct {
+	Matches1P map[string]int            `json:"matches_1p"`
+	Matches2P map[string]TwoPlayerStats `json:"matches_2p"`
+}
+
+type TwoPlayerStats struct {
+	Total int `json:"total"`
+	P1    int `json:"p1"`
+	P2    int `json:"p2"`
+	Draw  int `json:"draw"`
+}
+
+func (e *Engine) fetchStats() {
+	ch := make(chan struct{})
+	var result MenuStats
+	js.Global().Call("fetch", "/api/stats").Call("then",
+		js.FuncOf(func(_ js.Value, args []js.Value) any {
+			args[0].Call("json").Call("then",
+				js.FuncOf(func(_ js.Value, args []js.Value) any {
+					raw := js.Global().Get("JSON").Call("stringify", args[0]).String()
+					_ = json.Unmarshal([]byte(raw), &result)
+					close(ch)
+					return nil
+				}),
+				js.FuncOf(func(_ js.Value, _ []js.Value) any {
+					close(ch)
+					return nil
+				}),
+			)
+			return nil
+		}),
+		js.FuncOf(func(_ js.Value, _ []js.Value) any {
+			close(ch)
+			return nil
+		}),
+	)
+	<-ch
+	e.menuStats = &result
 }
 
 func (e *Engine) appendNickChar(key string, nick *[3]rune, length *int) {
