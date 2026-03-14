@@ -4,19 +4,29 @@ package main
 
 import (
 	"math"
+	"strings"
 	"syscall/js"
 )
+
+// normalizeKey converts single-character keys to lowercase so that keydown/keyup
+// always use the same map key regardless of Shift or CapsLock state.
+func normalizeKey(key string) string {
+	if len(key) == 1 {
+		return strings.ToLower(key)
+	}
+	return key
+}
 
 // registerInput sets up keydown/keyup listeners on the JS side.
 func (e *Engine) registerInput() {
 	js.Global().Call("addEventListener", "keydown", js.FuncOf(func(_ js.Value, args []js.Value) any {
-		key := args[0].Get("key").String()
+		key := normalizeKey(args[0].Get("key").String())
 		e.keys[key] = true
 		e.handleKeyDown(key, args[0])
 		return nil
 	}))
 	js.Global().Call("addEventListener", "keyup", js.FuncOf(func(_ js.Value, args []js.Value) any {
-		key := args[0].Get("key").String()
+		key := normalizeKey(args[0].Get("key").String())
 		delete(e.keys, key)
 		return nil
 	}))
@@ -59,14 +69,14 @@ func (e *Engine) handleKeyDown(key string, event js.Value) {
 			event.Call("preventDefault")
 		case "Enter", " ":
 			e.startGame()
-		case "m", "M":
+		case "m":
 			e.musicEnabled = !e.musicEnabled
 			if e.musicEnabled {
 				callAudio("menuMusic")
 			} else {
 				callAudio("stopMusic")
 			}
-		case "s", "S":
+		case "s":
 			e.state = StateScoreboard
 			go e.fetchScores("")
 		}
@@ -78,9 +88,9 @@ func (e *Engine) handleKeyDown(key string, event js.Value) {
 
 	case StatePaused:
 		switch key {
-		case "Escape", "p", "P":
+		case "Escape", "p":
 			e.state = StatePlaying
-		case "q", "Q":
+		case "q":
 			e.playMusic("menuMusic")
 			e.state = StateMenu
 		}
@@ -90,7 +100,7 @@ func (e *Engine) handleKeyDown(key string, event js.Value) {
 
 	case StateScoreboard:
 		switch key {
-		case "Escape", "r", "R":
+		case "Escape", "r":
 			e.playMusic("menuMusic")
 			e.state = StateMenu
 		case "ArrowLeft":
@@ -118,10 +128,10 @@ func (e *Engine) applyMovementInput(dt float64) {
 	if e.twoPlayer {
 		paddleSpeed := e.paddle.Speed
 		pdiff := 0.0
-		if e.keys["w"] || e.keys["W"] {
+		if e.keys["w"] {
 			pdiff -= paddleSpeed * dt
 		}
-		if e.keys["s"] || e.keys["S"] {
+		if e.keys["s"] {
 			pdiff += paddleSpeed * dt
 		}
 		if pdiff != 0 {
