@@ -32,6 +32,7 @@
     const music = new Audio('music.mp3');
     music.loop = true;
     music.volume = 0.35;
+    music.preload = 'auto'; // start buffering immediately on page load
 
     let musicState = 'stopped'; // 'stopped' | 'menu' | 'game'
 

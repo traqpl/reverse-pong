@@ -1,6 +1,8 @@
-.PHONY: all wasm wasm-exec server dev build tui play certs deploy logs clean
+.PHONY: all wasm wasm-exec server dev build tui play certs music deploy logs clean
 
 WASM_OUT   = server/web/game.wasm
+MUSIC_SRC  = music/Serca w pikselach.mp3
+MUSIC_OUT  = server/web/music.mp3
 BINARY     = reverse-pong
 TUI_BINARY = reverse-pong-tui
 CERTS_DIR  ?= certs
@@ -17,6 +19,9 @@ all: wasm certs
 	go run ./server/
 
 BUILD_TIME := $(shell date '+%Y-%m-%d %H:%M')
+
+music:
+	ffmpeg -i "$(MUSIC_SRC)" -codec:a libmp3lame -b:a 96k -ar 44100 $(MUSIC_OUT) -y
 
 wasm:
 	GOOS=js GOARCH=wasm go build -ldflags="-s -w -X 'main.BuildTime=$(BUILD_TIME)'" -o $(WASM_OUT) ./game/
@@ -42,14 +47,12 @@ tui:
 play: tui
 	open -na Ghostty.app --args --window-width=220 --window-height=50 -e $(abspath $(TUI_BINARY))
 
-deploy: wasm certs
+deploy: music wasm certs
 	GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o $(BINARY) ./server/
 	ssh $(REMOTE_HOST) "mkdir -p $(REMOTE_DIR) && pkill -x $(BINARY) || true; sleep 1; rm -f $(REMOTE_BIN)"
 	scp $(BINARY) $(REMOTE_HOST):$(REMOTE_BIN)
 	scp scripts/start-server.sh $(REMOTE_HOST):$(REMOTE_DIR)/start-server.sh
 	scp config.yaml $(REMOTE_HOST):$(REMOTE_DIR)/config.yaml
-	ssh $(REMOTE_HOST) "mkdir -p $(REMOTE_DIR)/music"
-	scp -r music/* $(REMOTE_HOST):$(REMOTE_DIR)/music/
 	ssh $(REMOTE_HOST) " \
 		chmod +x $(REMOTE_DIR)/start-server.sh; \
 		$(REMOTE_DIR)/start-server.sh"
