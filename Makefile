@@ -44,7 +44,7 @@ play: tui
 
 deploy: wasm certs
 	GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o $(BINARY) ./server/
-	ssh $(REMOTE_HOST) "mkdir -p $(REMOTE_DIR)"
+	ssh $(REMOTE_HOST) "mkdir -p $(REMOTE_DIR) && pkill -x $(BINARY) || true; sleep 1; rm -f $(REMOTE_BIN)"
 	scp $(BINARY) $(REMOTE_HOST):$(REMOTE_BIN)
 	scp scripts/start-server.sh $(REMOTE_HOST):$(REMOTE_DIR)/start-server.sh
 	scp config.yaml $(REMOTE_HOST):$(REMOTE_DIR)/config.yaml
@@ -52,8 +52,6 @@ deploy: wasm certs
 	scp -r music/* $(REMOTE_HOST):$(REMOTE_DIR)/music/
 	ssh $(REMOTE_HOST) " \
 		chmod +x $(REMOTE_DIR)/start-server.sh; \
-		pkill -x $(BINARY) || true; \
-		sleep 1; \
 		$(REMOTE_DIR)/start-server.sh"
 
 logs:
