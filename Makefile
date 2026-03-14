@@ -1,7 +1,8 @@
-.PHONY: all wasm wasm-exec server dev build clean
+.PHONY: all wasm wasm-exec server dev build tui play clean
 
-WASM_OUT = server/web/game.wasm
-BINARY   = reverse-pong
+WASM_OUT   = server/web/game.wasm
+BINARY     = reverse-pong
+TUI_BINARY = reverse-pong-tui
 
 all: wasm
 	@sleep 2 && open http://localhost:8080 &
@@ -22,5 +23,11 @@ dev: wasm
 build: wasm
 	go build -ldflags="-s -w" -o $(BINARY) ./server/
 
+tui:
+	go build -ldflags="-s -w" -o $(TUI_BINARY) ./cmd/tui/
+
+play: tui
+	open -na Ghostty.app --args --window-width=220 --window-height=50 -e $(abspath $(TUI_BINARY))
+
 clean:
-	rm -f $(WASM_OUT) $(BINARY) server/web/wasm_exec.js
+	rm -f $(WASM_OUT) $(BINARY) $(TUI_BINARY) server/web/wasm_exec.js
