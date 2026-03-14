@@ -4,3 +4,4 @@
 /reverse-pong-tui
 /tui
 /certs/
+/internal/certdata/encrypted.go

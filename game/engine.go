@@ -35,7 +35,6 @@ type Engine struct {
 	bestStreak int
 	timeLeft   float64 // seconds remaining
 
-	hitTimer       float64 // countdown for StateHit freeze
 	countdownTimer float64 // time within current countdown digit
 	countdownDigit int     // 3, 2, 1, 0 = GO!
 
@@ -110,12 +109,6 @@ func (e *Engine) Update(dt float64) {
 		e.updatePlaying(dt)
 	case StatePaused:
 		// nothing — waiting for input
-	case StateHit:
-		e.hitTimer -= dt
-		if e.hitTimer <= 0 {
-			e.resetBall()
-			e.state = StatePlaying
-		}
 	case StateGameOver:
 		e.updateGameOver(dt)
 	case StateScoreboard:
@@ -135,9 +128,6 @@ func (e *Engine) Render() {
 	case StatePaused:
 		e.renderPlaying() // draw game underneath
 		e.renderPauseOverlay()
-	case StateHit:
-		e.renderPlaying()
-		e.renderHitFlash()
 	case StateGameOver:
 		e.renderGameOver()
 	case StateScoreboard:

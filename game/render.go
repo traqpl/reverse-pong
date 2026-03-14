@@ -274,15 +274,6 @@ func (e *Engine) renderPauseOverlay() {
 	e.noGlow()
 }
 
-// ── Hit flash ─────────────────────────────────────────────────────────────────
-
-func (e *Engine) renderHitFlash() {
-	// Brief red tint proportional to remaining freeze time
-	alpha := e.hitTimer / cfg.Game.HitFreezeDuration * 0.35
-	e.ctx.Set("fillStyle", fmt.Sprintf("rgba(255,40,40,%.3f)", alpha))
-	e.ctx.Call("fillRect", 0, 0, e.w, e.h)
-}
-
 // ── Game over ─────────────────────────────────────────────────────────────────
 
 func (e *Engine) renderGameOver() {

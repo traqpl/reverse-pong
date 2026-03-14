@@ -41,15 +41,11 @@ func (e *Engine) updatePlaying(dt float64) {
 		e.paddle.Update(e.ball, dt, e.h)
 	}
 
-	// Check: ball exited left side
-	if e.ball.X+e.ball.R < 0 {
-		if e.paddle.Hits(e.ball) {
-			// Paddle caught it
-			e.onHit()
-		} else {
-			// Player passed the paddle — score!
-			e.onScore()
-		}
+	// Ball reaches left wall — paddle always bounces it back
+	if e.ball.X-e.ball.R <= 0 {
+		e.ball.X = e.ball.R
+		e.ball.VX = -e.ball.VX // flip to positive (going right)
+		e.onBounce()
 		return
 	}
 
@@ -63,7 +59,8 @@ func (e *Engine) updatePlaying(dt float64) {
 	}
 }
 
-func (e *Engine) onScore() {
+// onBounce scores points and speeds the ball up on every left-wall bounce.
+func (e *Engine) onBounce() {
 	e.streak++
 	if e.streak > e.bestStreak {
 		e.bestStreak = e.streak
@@ -73,30 +70,16 @@ func (e *Engine) onScore() {
 	multiplier := streakMultiplier(e.streak)
 	e.score += int(float64(pts) * multiplier)
 
-	callAudio("score")
+	callAudio("bounce")
 
-	// Reset ball at centre with slight speed increase
-	speed := e.ball.VX
-	if speed < 0 {
-		speed = -speed
-	}
-	speed *= cfg.Game.BallSpeedupRate
-
-	e.ball.X = e.w / 2
-	e.ball.Y = e.h / 2
+	// Speed up ball slightly; VX is already positive after the flip above
+	speed := e.ball.VX * cfg.Game.BallSpeedupRate
 	e.ball.VX = speed
 	if e.ball.VY < 0 {
 		e.ball.VY = -speed * 0.5
 	} else {
 		e.ball.VY = speed * 0.5
 	}
-}
-
-func (e *Engine) onHit() {
-	e.streak = 0
-	e.state = StateHit
-	e.hitTimer = cfg.Game.HitFreezeDuration
-	callAudio("hit")
 }
 
 // updateGameOver handles nick input state (key events handle key presses directly).

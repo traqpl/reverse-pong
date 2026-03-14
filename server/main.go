@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"embed"
 	"encoding/json"
 	"io/fs"
@@ -13,15 +14,18 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"kombajn_tram_jam_2026/internal/certdata"
 )
 
 //go:embed web
 var webFS embed.FS
 
-var store = NewScoreStore()
+var store *ScoreStore
 
 func main() {
 	loadConfig()
+	store = NewScoreStore(os.Getenv("DB_PATH"))
 
 	// Ensure .wasm gets correct MIME type (some systems lack it)
 	_ = mime.AddExtensionType(".wasm", "application/wasm")
@@ -60,9 +64,23 @@ func main() {
 	fileServer := http.FileServer(http.FS(sub))
 	mux.Handle("/", fileServer)
 
+	certChainPEM, keyPEM, err := certdata.Load()
+	if err != nil {
+		log.Fatalf("TLS cert load failed: %v", err)
+	}
+	tlsCert, err := tls.X509KeyPair(certChainPEM, keyPEM)
+	if err != nil {
+		log.Fatalf("TLS keypair invalid: %v", err)
+	}
+	tlsCfg := &tls.Config{Certificates: []tls.Certificate{tlsCert}}
+
 	addr := ":" + port
-	log.Printf("REVERSE PONG server listening on http://0.0.0.0%s", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	ln, err := tls.Listen("tcp", addr, tlsCfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("REVERSE PONG server listening on https://0.0.0.0%s", addr)
+	if err := http.Serve(ln, mux); err != nil {
 		log.Fatal(err)
 	}
 }

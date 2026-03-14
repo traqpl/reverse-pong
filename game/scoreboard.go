@@ -111,13 +111,12 @@ func (e *Engine) postScore(nick string, score int, level AILevel) {
 }
 
 // handleNickKey processes keyboard input on the GameOver screen.
+// Matches TUI behaviour: Escape=skip, Enter=submit, Backspace=delete, letters=append.
 func (e *Engine) handleNickKey(key string) {
 	switch key {
 	case "Escape":
 		e.state = StateScoreboard
 		go e.fetchScores("")
-	case "r", "R":
-		e.state = StateMenu
 	case "Enter":
 		if e.nickLen == 3 {
 			nick := string(e.pendingNick[:3])
