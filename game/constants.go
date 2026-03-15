@@ -74,15 +74,15 @@ func defaultConfig() GameConfig {
 		},
 		Levels: map[string]LevelSettings{
 			"easy": {
-				BallSpeed: 240, PaddleSpeed: 180, Points: 1,
+				BallSpeed: 240, PaddleSpeed: 300, Points: 1,
 				JitterRange: 30, JitterInterval: 0.5, DeadZone: 15,
 			},
 			"medium": {
-				BallSpeed: 300, PaddleSpeed: 300, Points: 2,
+				BallSpeed: 300, PaddleSpeed: 375, Points: 2,
 				ErrorChance: 0.30, ErrorRange: 70, ErrorInterval: 1.8, DeadZone: 12,
 			},
 			"hard": {
-				BallSpeed: 360, PaddleSpeed: 420, Points: 3,
+				BallSpeed: 360, PaddleSpeed: 450, Points: 3,
 				ErrorChance: 0.08, ErrorRange: 35, ErrorInterval: 3.0, DeadZone: 3,
 			},
 		},

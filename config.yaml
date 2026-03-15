@@ -9,7 +9,7 @@ game:
 levels:
   easy:
     ball_speed: 400         # startowa prędkość kulki (px/s)
-    paddle_speed: 333       # prędkość paletki AI (px/s)
+    paddle_speed: 500       # prędkość paletki AI (px/s)
     points: 1               # punkty za ominięcie paletki
     jitter_range: 30        # losowy offset celu paletki (px)
     jitter_interval: 0.5    # co ile sekund losowany nowy jitter (s)
@@ -17,7 +17,7 @@ levels:
 
   medium:
     ball_speed: 533
-    paddle_speed: 480
+    paddle_speed: 667
     points: 2
     error_chance: 0.30      # prawdopodobieństwo celowego błędu (0-1)
     error_range: 70         # zakres celowego błędu (px)
@@ -26,7 +26,7 @@ levels:
 
   hard:
     ball_speed: 667
-    paddle_speed: 640
+    paddle_speed: 834
     points: 3
     error_chance: 0.08
     error_range: 35

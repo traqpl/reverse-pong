@@ -50,14 +50,14 @@ func loadConfig() {
 	viper.SetDefault("game.go_display_duration", 0.6)
 
 	viper.SetDefault("levels.easy.ball_speed", 600)
-	viper.SetDefault("levels.easy.paddle_speed", 500)
+	viper.SetDefault("levels.easy.paddle_speed", 750)
 	viper.SetDefault("levels.easy.points", 1)
 	viper.SetDefault("levels.easy.jitter_range", 30)
 	viper.SetDefault("levels.easy.jitter_interval", 0.5)
 	viper.SetDefault("levels.easy.dead_zone", 15)
 
 	viper.SetDefault("levels.medium.ball_speed", 800)
-	viper.SetDefault("levels.medium.paddle_speed", 720)
+	viper.SetDefault("levels.medium.paddle_speed", 1000)
 	viper.SetDefault("levels.medium.points", 2)
 	viper.SetDefault("levels.medium.error_chance", 0.30)
 	viper.SetDefault("levels.medium.error_range", 70)
@@ -65,7 +65,7 @@ func loadConfig() {
 	viper.SetDefault("levels.medium.dead_zone", 12)
 
 	viper.SetDefault("levels.hard.ball_speed", 1000)
-	viper.SetDefault("levels.hard.paddle_speed", 960)
+	viper.SetDefault("levels.hard.paddle_speed", 1250)
 	viper.SetDefault("levels.hard.points", 3)
 	viper.SetDefault("levels.hard.error_chance", 0.08)
 	viper.SetDefault("levels.hard.error_range", 35)
