@@ -55,11 +55,16 @@
         music.pause();
     }
 
-    // Start menu music on first user interaction (browsers require a gesture).
-    const startMenuOnce = () => startMenuMusic();
-    ['keydown', 'mousedown', 'touchstart'].forEach(ev =>
-        document.addEventListener(ev, startMenuOnce, { once: true })
-    );
+    // Try to start menu music immediately; fall back to first user interaction
+    // if the browser blocks autoplay (requires a gesture).
+    music.play().then(() => {
+        musicState = 'menu';
+    }).catch(() => {
+        const startMenuOnce = () => startMenuMusic();
+        ['keydown', 'mousedown', 'touchstart'].forEach(ev =>
+            document.addEventListener(ev, startMenuOnce, { once: true })
+        );
+    });
 
     // ── Public API ────────────────────────────────────────────────────────────
 
