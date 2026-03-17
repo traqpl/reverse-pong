@@ -673,10 +673,10 @@ func (e *Engine) drawTicker() {
 	if n == 0 {
 		return
 	}
-	// scroll right→left: offset increases over time
-	offset := int(time.Now().UnixMilli()/80) % n
+	// scroll left→right: offset decreases over time
+	t := int(time.Now().UnixMilli() / 80)
 	for x := 0; x < e.termW; x++ {
-		idx := (offset + x) % n
+		idx := (n*1000 - t + x) % n
 		e.scr.SetContent(x, 0, runes[idx], nil, styleTitle)
 	}
 }
