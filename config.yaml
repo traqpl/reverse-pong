@@ -1,3 +1,6 @@
+port: 8073
+db_path: ./reverse_pong_scores.db
+
 game:
   duration: 60            # czas gry w sekundach
   ball_speedup_rate: 1.02 # mnożnik prędkości kulki po każdym punkcie

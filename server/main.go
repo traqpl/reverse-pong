@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"embed"
 	"encoding/json"
 	"io/fs"
@@ -14,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-
-	"kombajn_tram_jam_2026/internal/certdata"
 )
 
 //go:embed web
@@ -32,7 +29,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8073"
 	}
 
 	mux := http.NewServeMux()
@@ -70,23 +67,9 @@ func main() {
 	fileServer := http.FileServer(http.FS(sub))
 	mux.Handle("/", fileServer)
 
-	certChainPEM, keyPEM, err := certdata.Load()
-	if err != nil {
-		log.Fatalf("TLS cert load failed: %v", err)
-	}
-	tlsCert, err := tls.X509KeyPair(certChainPEM, keyPEM)
-	if err != nil {
-		log.Fatalf("TLS keypair invalid: %v", err)
-	}
-	tlsCfg := &tls.Config{Certificates: []tls.Certificate{tlsCert}}
-
 	addr := ":" + port
-	ln, err := tls.Listen("tcp", addr, tlsCfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("REVERSE PONG server listening on https://0.0.0.0%s", addr)
-	if err := http.Serve(ln, mux); err != nil {
+	log.Printf("REVERSE PONG server listening on http://0.0.0.0%s", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatal(err)
 	}
 }

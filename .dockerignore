@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+.claude
+.DS_Store
+reverse-pong
+reverse-pong-tui
+tui
+server/web/game.wasm
+server/web/wasm_exec.js

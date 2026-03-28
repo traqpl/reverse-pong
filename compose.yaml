@@ -1,0 +1,15 @@
+services:
+  reverse-pong:
+    image: ${IMAGE_NAME:-reverse-pong:latest}
+    container_name: reverse-pong
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8073}:8073"
+    environment:
+      PORT: "8073"
+      DB_PATH: /data/reverse_pong_scores.db
+    volumes:
+      - reverse-pong-data:/data
+
+volumes:
+  reverse-pong-data:

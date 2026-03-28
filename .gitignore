@@ -3,5 +3,4 @@
 /.claude/
 /reverse-pong-tui
 /tui
-/certs/
-/internal/certdata/encrypted.go
+*.db

@@ -1,0 +1,45 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Linux, X64, games]
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Deploy on agent host
+        env:
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+        run: |
+          make deploy-agent \
+            DEPLOY_DIR="${DEPLOY_DIR:-$HOME/reverse-pong}" \
+            PORT="${DEPLOY_PORT:-8073}"
