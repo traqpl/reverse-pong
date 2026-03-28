@@ -93,7 +93,7 @@ func (s *ScoreStore) Top(level string, n int) []ScoreEntry {
 		log.Printf("scores query: %v", err)
 		return nil
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var entries []ScoreEntry
 	for rows.Next() {
@@ -129,7 +129,7 @@ func (s *ScoreStore) Stats() StatsResponse {
 
 	rows, err := s.db.Query(`SELECT level, COUNT(*) FROM matches WHERE mode='1p' GROUP BY level`)
 	if err == nil {
-		defer rows.Close()
+		defer func() { _ = rows.Close() }()
 		for rows.Next() {
 			var level string
 			var count int
@@ -141,7 +141,7 @@ func (s *ScoreStore) Stats() StatsResponse {
 
 	rows2, err := s.db.Query(`SELECT level, winner, COUNT(*) FROM matches WHERE mode='2p' GROUP BY level, winner`)
 	if err == nil {
-		defer rows2.Close()
+		defer func() { _ = rows2.Close() }()
 		for rows2.Next() {
 			var level, winner string
 			var count int
