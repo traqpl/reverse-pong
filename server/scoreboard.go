@@ -40,7 +40,7 @@ func NewScoreStore(dbPath string) *ScoreStore {
 		}
 		dbPath = filepath.Join(dir, "reverse-pong", "scores.db")
 	}
-	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0750); err != nil {
 		log.Fatalf("scores db dir: %v", err)
 	}
 

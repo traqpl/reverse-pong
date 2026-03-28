@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"time"
 	"io/fs"
 	"log"
 	"mime"
@@ -68,8 +69,15 @@ func main() {
 	mux.Handle("/", fileServer)
 
 	addr := ":" + port
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 	log.Printf("REVERSE PONG server listening on http://0.0.0.0%s", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
