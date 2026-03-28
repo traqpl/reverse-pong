@@ -12,12 +12,16 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    container:
-      image: golang:1.26@sha256:f200f27a113fd26789f07ff95ec1f7e337e295ddb711c693cf5b18a6dc7e88f5
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
 
       - name: Packages to check (exclude TUI – requires native audio libs)
         id: pkgs
