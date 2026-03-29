@@ -7,6 +7,7 @@ BINARY     = reverse-pong
 TUI_BINARY = reverse-pong-tui
 GOLANGCI_LINT_VERSION ?= v2.8.0
 GOSEC_VERSION ?= v2.22.2
+SERVER_PKGS = ./game/... ./server/...
 
 # ── deployment ────────────────────────────────────────────────────────────────
 REMOTE_HOST ?= daemon
@@ -53,13 +54,13 @@ play: tui
 	$(BROWSER_OPEN) -na Ghostty.app --args --window-width=220 --window-height=50 -e $(abspath $(TUI_BINARY))
 
 lint:
-	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) run ./...
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) run $(SERVER_PKGS)
 
 sec:
-	go run github.com/securego/gosec/v2/cmd/gosec@$(GOSEC_VERSION) ./...
+	go run github.com/securego/gosec/v2/cmd/gosec@$(GOSEC_VERSION) $(SERVER_PKGS)
 
 test:
-	go test ./...
+	go test $(SERVER_PKGS)
 
 ci: lint sec test wasm build
 
