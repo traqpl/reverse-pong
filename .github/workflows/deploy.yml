@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, Linux, X64, games]
+    runs-on: [self-hosted, Linux, X64, reverse-pong]
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
