@@ -12,16 +12,37 @@ permissions:
 jobs:
   build-and-test:
     runs-on: [self-hosted, Linux, X64, reverse-pong]
+    env:
+      TMPDIR: ${{ github.workspace }}/.tmp
+      GOCACHE: ${{ github.workspace }}/.cache/go-build
+      GOMODCACHE: ${{ github.workspace }}/.cache/go-mod
 
     steps:
+      - name: Reset self-hosted workspace with sudo
+        run: |
+          sudo mkdir -p "$GITHUB_WORKSPACE"
+          sudo find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 \
+            ! -name '_temp' \
+            ! -name '_actions' \
+            ! -name '_tool' \
+            -exec rm -rf {} +
+
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          clean: false
+
+      - name: Clean workspace caches with sudo
+        run: sudo rm -rf "$TMPDIR" "$GOCACHE" "$GOMODCACHE"
+
+      - name: Prepare Go workspace directories
+        run: mkdir -p "$TMPDIR" "$GOCACHE" "$GOMODCACHE"
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
 
       - name: Lint, security scan and tests
         run: make lint sec test
@@ -34,3 +55,25 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t reverse-pong:ci .
+
+      - name: Cleanup runner workspace
+        if: always()
+        run: |
+          go clean -cache -testcache -modcache || true
+          sudo rm -rf \
+            "$TMPDIR" \
+            "$GOCACHE" \
+            "$GOMODCACHE" \
+            "$GITHUB_WORKSPACE/.cache" \
+            "$GITHUB_WORKSPACE/.tmp"
+          rm -f /tmp/reverse-pong /tmp/game.wasm || true
+          docker image rm -f reverse-pong:ci || true
+          docker builder prune -af || true
+          sudo find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 \
+            ! -name '_temp' \
+            ! -name '_actions' \
+            ! -name '_tool' \
+            -exec rm -rf {} +
+          if [ -n "${RUNNER_TOOL_CACHE:-}" ]; then
+            sudo rm -rf "${RUNNER_TOOL_CACHE}/go"
+          fi

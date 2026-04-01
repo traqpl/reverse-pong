@@ -18,22 +18,42 @@ concurrency:
 jobs:
   deploy:
     runs-on: [self-hosted, Linux, X64, reverse-pong]
+    env:
+      TMPDIR: ${{ github.workspace }}/.tmp
+      GOCACHE: ${{ github.workspace }}/.cache/go-build
+      GOMODCACHE: ${{ github.workspace }}/.cache/go-mod
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.head_branch == 'main')
 
     steps:
+      - name: Reset self-hosted workspace with sudo
+        run: |
+          sudo mkdir -p "$GITHUB_WORKSPACE"
+          sudo find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 \
+            ! -name '_temp' \
+            ! -name '_actions' \
+            ! -name '_tool' \
+            -exec rm -rf {} +
+
       - name: Check out repository
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          clean: false
+
+      - name: Clean workspace caches with sudo
+        run: sudo rm -rf "$TMPDIR" "$GOCACHE" "$GOMODCACHE"
+
+      - name: Prepare Go workspace directories
+        run: mkdir -p "$TMPDIR" "$GOCACHE" "$GOMODCACHE"
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
 
       - name: Deploy on agent host
         env:
@@ -43,3 +63,22 @@ jobs:
           make deploy-agent \
             DEPLOY_DIR="${DEPLOY_DIR:-$HOME/reverse-pong}" \
             PORT="${DEPLOY_PORT:-8073}"
+
+      - name: Cleanup runner workspace
+        if: always()
+        run: |
+          go clean -cache -testcache -modcache || true
+          sudo rm -rf \
+            "$TMPDIR" \
+            "$GOCACHE" \
+            "$GOMODCACHE" \
+            "$GITHUB_WORKSPACE/.cache" \
+            "$GITHUB_WORKSPACE/.tmp"
+          sudo find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 \
+            ! -name '_temp' \
+            ! -name '_actions' \
+            ! -name '_tool' \
+            -exec rm -rf {} +
+          if [ -n "${RUNNER_TOOL_CACHE:-}" ]; then
+            sudo rm -rf "${RUNNER_TOOL_CACHE}/go"
+          fi
